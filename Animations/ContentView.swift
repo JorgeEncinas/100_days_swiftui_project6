@@ -8,24 +8,20 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var animationAmount = 0.0
+    @State private var enabled = false
     
     var body: some View {
-        print(animationAmount)
         return VStack {
             Button("Tap Me") {
-                withAnimation(.spring(duration: 1, bounce: 0.5)) {
-                    animationAmount += 360
-                }
+                enabled.toggle()
             }
-            .padding(50)
-            .background(.red)
+            .frame(width: 200, height: 200)
+            .background(enabled ? .blue : .red)
+            .animation(nil, value: enabled) //.default
             .foregroundStyle(.white)
-            .clipShape(.circle)
-            .rotation3DEffect(
-                .degrees(animationAmount),
-                axis: (x: 1, y: 0, z: 0)
-            )
+            .clipShape(.rect(cornerRadius: enabled ? 60 : 0))
+            .animation(.spring(duration: 1, bounce: 0.6), value: enabled)
+            
         }
     }
 }
