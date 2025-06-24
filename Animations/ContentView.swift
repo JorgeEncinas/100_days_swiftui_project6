@@ -7,32 +7,52 @@
 
 import SwiftUI
 
+struct CornerRotateModifier : ViewModifier {
+    let amount: Double
+    let anchor: UnitPoint
+    
+    func body(content: Content) -> some View {
+        content
+            .rotationEffect( //We want you to rotate by the specified amount, from the anchor (corner for us) specified
+                .degrees(amount),
+                anchor: anchor
+            )
+            .clipped() //Parts lying OUTSIDE of the natural rectangle are NOT drawn
+    }
+}
+
+extension AnyTransition {
+    static var pivot : AnyTransition {
+        .modifier(
+            active: CornerRotateModifier(amount: -90, anchor: .topLeading),
+            identity: CornerRotateModifier(amount: 0, anchor: .topLeading)
+        )
+    }
+}
+
+
 struct ContentView: View {
-    let letters = Array("Hello SwiftUI")
-    @State private var enabled = false
-    @State private var dragAmount = CGSize.zero //Stores the amount of drag
+    //let letters = Array("Hello SwiftUI")
+    //@State private var enabled = false
+    //@State private var dragAmount = CGSize.zero //Stores the amount of drag
     @State private var isShowingRed = false
     
     var body: some View {
-        return VStack {
-            Button("Tap Me") {
-                withAnimation {
-                    isShowingRed.toggle()
-                }
-            }
+        ZStack {
+            Rectangle()
+                .fill(.blue)
+                .frame(width: 200, height: 200)
             
             if isShowingRed {
                 Rectangle()
                     .fill(.red)
                     .frame(width: 200, height: 200)
-                    .transition(
-                        .asymmetric(
-                            insertion: .scale,
-                            removal: .opacity
-                        )
-                    ) //.scale
+                    .transition(.pivot)
             }
-           
+        }.onTapGesture {
+            withAnimation {
+                isShowingRed.toggle()
+            }
         }
     }
 }
@@ -97,6 +117,26 @@ struct ContentView: View {
 //              .delay(1),
 //      value: animationAmount
 //      )
+
+// CUSTOM TRANSITIONS WITH `.modifier` transition
+//  BUT we need to be able to instantiate the modifier
+//      That means we need to create it ourselves.
+    
+// PIVOT ANIMATION in Keynote
+//      a new slide rotates in from its top-left corner.
+//      Creating a view modifier that causes our view to rotate IN from one corenr,
+//      without escaping the bounds it's supposed to be in.
+
+//  rotationEffect() to rotate a view in 2D space
+//  clipped() stops the view from being drawn outside of its rectangular space.
+
+// rotationEffect() is similar to rotation3DEffect()
+//  except it always rotates around the Z Axis.
+//  AND it gives us the ability to control the ANCHOR POINT of the rotation (so we can set it to anchor from one corner)
+
+//  SwiftUI gives us a UnitPoint type
+//      controls the ANCHOR, specifying exact XY point for the rotation, as well as ability to use the options.
+//  .topLeading, .bottomTrailing, .center
 
 #Preview {
     ContentView()
