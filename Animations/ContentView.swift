@@ -7,6 +7,321 @@
 
 import SwiftUI
 
+struct ImplicitAnimationButton : View {
+    @State private var animationAmount = 1.0
+    
+    var body : some View {
+        Button("Tap Me") {
+            animationAmount += 1
+        }
+        .padding(50)
+        .background(.red)
+        .foregroundStyle(.white)
+        .clipShape(.circle)
+        .scaleEffect(animationAmount) //With just this one, it skips immediately to the next state
+        .blur(
+            radius: (animationAmount - 1) * 3
+        )
+        .animation(
+            .default, //.linear, .easeInOut(duration), .spring(duration, bounce)
+            value: animationAmount
+        )
+    }
+}
+
+struct AnimatedButton1 : View {
+    @State private var animationAmount = 1.0
+    
+    var body : some View {
+        Button("Tap Me") {
+            animationAmount += 1
+        }
+        .padding(50)
+        .background(.red)
+        .foregroundStyle(.white)
+        .clipShape(.circle)
+        .scaleEffect(animationAmount)
+        .animation(.easeInOut(duration: 2)
+                        .delay(1)
+                        .repeatCount(3, autoreverses: true), //the instance of the Animation struct has its own modifiers!
+                   value: animationAmount
+        )
+    }
+}
+
+struct PulsatingButton : View {
+    @State private var animationAmount = 1.0
+    
+    var body : some View {
+        Button("Tap Me") {
+        }
+        .clipShape(.circle)
+        .overlay( //A modifier to create new views at the same size and position as the view we're overlaying
+            Circle() //So we create a circle right on top of our button
+                .stroke(.red)
+                .scaleEffect(animationAmount)
+                .opacity(2 - animationAmount)
+                .animation(
+                    .easeOut(duration: 1)
+                    .repeatForever(autoreverses: false),
+                    value: animationAmount
+                )
+        )
+        .onAppear {
+            animationAmount = 2
+        }
+    }
+}
+
+struct BindingsAnimation1 : View {
+    @State private var animationAmount = 1.0
+    
+    
+    var body : some View {
+        print(animationAmount)
+        
+        return VStack {
+            Stepper(
+                "Scale Amount",
+                value: $animationAmount.animation(), //However, pressing the stepper DOES have an effect
+                in: 1...10
+            )
+            Spacer()
+            Button("Tap Me") { //If you tap, no animation takes place
+                animationAmount += 1
+            }
+            .padding(40)
+            .background(.red)
+            .foregroundStyle(.white)
+            .clipShape(.circle)
+            .scaleEffect(animationAmount)
+        }
+    }
+}
+
+struct BindingsAnimation2 : View  {
+    @State private var animationAmount = 1.0
+
+    var body : some View {
+        Stepper(
+            "Scale amount",
+            value: $animationAmount.animation(
+                .easeInOut(duration: 1)
+                .repeatCount(3, autoreverses: true)
+            ),
+            in: 1...10
+        )
+        Spacer()
+        Button("Tap Me") {
+            
+        }
+        .padding(40)
+        .background(.red)
+        .foregroundStyle(.white)
+        .clipShape(.circle)
+        .scaleEffect(animationAmount)
+        Spacer()
+       
+    }
+}
+
+struct ExplicitAnimation1 : View {
+    @State private var animationAmount = 0.0
+    
+    var body : some View {
+        Button("Tap Me") {
+            //withAnimation(.spring(duration: 1, bounce: 0.5)) {
+            //    animationAmount += 360
+            //}
+            withAnimation {
+                animationAmount += 360
+            }
+        }
+        .padding(50)
+        .background(.red)
+        .foregroundStyle(.white)
+        .clipShape(.circle)
+        .rotation3DEffect(
+            .degrees(animationAmount),
+            axis: (x: 0, y: 1, z: 0)
+        )
+    }
+}
+
+struct StackAnimation : View {
+    var body : some View {
+        Button("Tap Me") {
+            
+        }
+        .background(.blue)
+        .frame(width: 200, height: 200)
+        .foregroundStyle(.white)
+        Button("Different") {
+            
+        }
+        .frame(width: 200, height: 200)
+        .background(.blue)
+        .foregroundStyle(.white)
+    }
+}
+
+struct StackAnimation2 : View {
+    @State private var enabled = false
+    
+    var body : some View {
+        Button("Tap Me") {
+            enabled.toggle()
+        }
+        .frame(width: 200, height: 200)
+        .background(enabled ? .blue : .red) //We'll see here that modifier order matters!
+        .foregroundStyle(.white)
+        .animation(.default, value: enabled)
+        .clipShape(
+            .rect(cornerRadius: enabled ? 60 : 0)
+        )
+        .animation( //Now we have a tiered animation. the first one handles the changes above it.
+            .spring(duration: 1, bounce: 0.6),
+            value: enabled
+        )
+        .scaleEffect(enabled ? 1.0 : 0.5)
+        .animation(nil, value: enabled) //Note that the size change is IMMEDIATE!
+    }
+}
+
+struct GestureAnimation1 : View {
+    @State private var dragAmount = CGSize.zero
+    
+    var body : some View {
+        LinearGradient(
+            colors: [.yellow, .red],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .frame(width: 300, height: 200)
+        .clipShape(
+            .rect(cornerRadius: 10)
+        )
+        .offset(dragAmount)
+        .gesture(
+            DragGesture()
+                .onChanged { dragAmount = $0.translation }
+                .onEnded { _ in dragAmount = .zero }
+        )
+        .animation(.bouncy, value: dragAmount)
+    }
+}
+
+struct GestureAnimation2 : View {
+    @State private var dragAmount = CGSize.zero
+    
+    var body : some View {
+        LinearGradient(
+            colors: [.yellow, .red],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(width: 300, height: 200)
+        .clipShape(
+            .rect(cornerRadius: 20)
+        )
+        .offset(dragAmount)
+        .gesture(
+            DragGesture()
+                .onChanged {
+                    //withAnimation(.spring) { //You can't call the animation here because it would be call too often and unreliably!
+                        dragAmount = $0.translation
+                    //} //So note that this way, the animation is on ONLY for when you finish dragging
+                }
+                .onEnded { _ in
+                    withAnimation(.bouncy) { //Explicit animation instead!
+                        dragAmount = CGSize.zero
+                    }
+                }
+        )
+        //.animation(
+        //    .bouncy,
+        //    value: dragAmount
+        //)
+    }
+}
+
+struct GestureAnimation3 : View {
+    let letters = Array("Hello SwiftUI")
+    @State private var enabled = false
+    @State private var dragAmount = CGSize.zero
+    
+    var body : some View {
+        HStack(spacing: 0) {
+            ForEach(0..<letters.count, id:\.self) { (num : Int) in
+                Text(String(letters[num]))
+                    .padding(5)
+                    .font(.title)
+                    .background(enabled ? .blue : .red)
+                    .offset(dragAmount)
+                    .animation(
+                        .linear.delay(Double(num) / 20),
+                        value: dragAmount
+                    )
+            }
+        }.gesture(
+            DragGesture()
+                .onChanged { dragAmount = $0.translation }
+                .onEnded { _ in
+                    dragAmount = CGSize.zero
+                    enabled.toggle()
+                }
+            
+        )
+    }
+}
+
+struct TransitionView : View {
+    @State private var isShowingRed = false
+    
+    var body : some View {
+        VStack {
+            Button("Tap Me") {
+                withAnimation {
+                    isShowingRed.toggle()
+                }
+            }
+            if isShowingRed {
+                Rectangle()
+                    .fill(.red)
+                    .frame(width: 200, height: 200)
+                    .transition(.scale) //Without it, the "Tap Me" button slides up!
+            }
+        }
+    }
+}
+
+struct TransitionView2 : View {
+    @State private var isShowingRed = false
+    
+    var body : some View {
+        VStack {
+            Button("Tap Me") {
+                // If you don't specify 'withAnimation' then it won't work. using .animation() does not work either, that might be because when isShowingRed = false, then we don't enter the block, thus the view does not exist! something of the sort.
+                withAnimation {
+                    isShowingRed.toggle()
+                }
+            }
+            
+            if isShowingRed {
+                Rectangle()
+                    .fill(.red)
+                    .frame(width: 200, height: 200)
+                    .transition(
+                        .asymmetric(
+                            insertion: .scale,
+                            removal: .opacity
+                        )
+                    )
+            }
+        }
+    }
+}
+
 struct CornerRotateModifier : ViewModifier {
     let amount: Double
     let anchor: UnitPoint
@@ -30,18 +345,17 @@ extension AnyTransition {
     }
 }
 
-
-struct ContentView: View {
-    //let letters = Array("Hello SwiftUI")
-    //@State private var enabled = false
-    //@State private var dragAmount = CGSize.zero //Stores the amount of drag
+struct PivotAnimation : View {
     @State private var isShowingRed = false
     
-    var body: some View {
+    var body : some View {
         ZStack {
             Rectangle()
                 .fill(.blue)
-                .frame(width: 200, height: 200)
+                .frame(
+                    width: 200,
+                    height: 200
+                )
             
             if isShowingRed {
                 Rectangle()
@@ -49,11 +363,27 @@ struct ContentView: View {
                     .frame(width: 200, height: 200)
                     .transition(.pivot)
             }
-        }.onTapGesture {
+        }
+        .onTapGesture {
             withAnimation {
                 isShowingRed.toggle()
             }
         }
+    }
+}
+
+struct ContentView: View {
+    //let letters = Array("Hello SwiftUI")
+    //@State private var enabled = false
+    //@State private var dragAmount = CGSize.zero //Stores the amount of drag
+    //@State private var isShowingRed = false
+    
+    var body: some View {
+        //BindingsAnimation2()
+        //StackAnimation2()
+        //GestureAnimation3()
+        //TransitionView2()
+        PivotAnimation()
     }
 }
 
